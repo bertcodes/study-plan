@@ -1343,6 +1343,21 @@
 
         // 更新 Gist
         async function updateGist(gistId, data) {
+            // 先获取当前 Gist 的信息，获取文件 SHA
+            const getResponse = await fetch(`https://api.github.com/gists/${gistId}`, {
+                headers: {
+                    'Authorization': 'token ' + githubConfig.token
+                }
+            });
+
+            if (!getResponse.ok) {
+                const error = await getResponse.json();
+                throw new Error(error.message || '获取 Gist 信息失败');
+            }
+
+            const gist = await getResponse.json();
+            const fileSha = gist.files['study-plan-data.json']?.raw_url;
+
             const gistData = {
                 description: '每日学习计划数据备份 - ' + new Date().toLocaleDateString('zh-CN'),
                 files: {
@@ -1351,6 +1366,13 @@
                     }
                 }
             };
+
+            // 如果存在文件，添加 SHA 来避免冲突
+            if (fileSha) {
+                gistData.files['study-plan-data.json'] = {
+                    content: JSON.stringify(data, null, 2)
+                };
+            }
 
             const response = await fetch(`https://api.github.com/gists/${gistId}`, {
                 method: 'PATCH',
@@ -1363,6 +1385,7 @@
 
             if (!response.ok) {
                 const error = await response.json();
+                console.error('更新 Gist 错误:', error);
                 throw new Error(error.message || '更新 Gist 失败');
             }
 
