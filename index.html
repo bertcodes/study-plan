@@ -478,6 +478,114 @@
             background: #219a52;
         }
 
+        .github-btn {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+
+        .github-btn:hover {
+            background: #24292e;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .modal-content input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-content .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .modal-buttons .cancel-btn {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .modal-buttons .confirm-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .sync-status {
+            display: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .sync-status.show {
+            display: block;
+        }
+
+        .sync-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .sync-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -506,8 +614,11 @@
                 <p class="current-date" id="currentDate"></p>
             </div>
             <div>
+                <button class="github-btn" onclick="showGithubSettings()">⚙️ GitHub设置</button>
+                <button class="github-btn" onclick="syncToGithub()" style="background: #0366d6;">☁️ 同步到Gist</button>
+                <button class="github-btn" onclick="loadFromGithub()" style="background: #28a745;">📥 从Gist加载</button>
                 <button class="export-btn" onclick="exportData()">📤 导出数据</button>
-                <button class="export-btn" onclick="clearData()" style="background: #e74c3c; margin-left: 10px;">🗑️ 清除数据</button>
+                <button class="export-btn" onclick="clearData()" style="background: #e74c3c;">🗑️ 清除数据</button>
             </div>
         </div>
 
@@ -609,6 +720,26 @@
         </div>
     </div>
 
+    <!-- GitHub设置弹窗 -->
+    <div class="modal" id="githubModal">
+        <div class="modal-content">
+            <h3>⚙️ GitHub 设置</h3>
+            <input type="text" id="githubToken" placeholder="GitHub Personal Access Token" />
+            <input type="text" id="gistId" placeholder="Gist ID (可选，留空则创建新Gist)" />
+            <p style="font-size: 12px; color: #666; margin-bottom: 15px;">
+                💡 提示：前往 GitHub Settings > Developer settings > Personal access tokens 生成 Token<br>
+                需要勾选 gist 权限
+            </p>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeGithubModal()">取消</button>
+                <button class="confirm-btn" onclick="saveGithubConfig()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 同步状态提示 -->
+    <div class="sync-status" id="syncStatus"></div>
+
     <script>
         // 数据存储
         let tasks = [];
@@ -619,9 +750,16 @@
         let isTimerRunning = false;
         let currentFilter = 'all';
 
+        // GitHub Gist 配置
+        let githubConfig = {
+            token: '',
+            gistId: ''
+        };
+
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
+            loadGithubConfig();
             updateCurrentDate();
             updateStats();
             renderTasks();
@@ -639,6 +777,53 @@
             if (savedTasks) tasks = JSON.parse(savedTasks);
             if (savedNotes) notes = JSON.parse(savedNotes);
             if (savedHistory) studyHistory = JSON.parse(savedHistory);
+        }
+
+        // 加载GitHub配置
+        function loadGithubConfig() {
+            const savedConfig = localStorage.getItem('githubConfig');
+            if (savedConfig) {
+                githubConfig = JSON.parse(savedConfig);
+                document.getElementById('githubToken').value = githubConfig.token;
+                document.getElementById('gistId').value = githubConfig.gistId;
+            }
+        }
+
+        // 保存GitHub配置
+        function saveGithubConfig() {
+            const token = document.getElementById('githubToken').value.trim();
+            const gistId = document.getElementById('gistId').value.trim();
+
+            if (!token) {
+                alert('请输入 GitHub Personal Access Token');
+                return;
+            }
+
+            githubConfig = { token, gistId };
+            localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+            closeGithubModal();
+            showSyncStatus('配置已保存', 'success');
+        }
+
+        // 显示GitHub设置弹窗
+        function showGithubSettings() {
+            document.getElementById('githubModal').classList.add('show');
+        }
+
+        // 关闭GitHub设置弹窗
+        function closeGithubModal() {
+            document.getElementById('githubModal').classList.remove('show');
+        }
+
+        // 显示同步状态
+        function showSyncStatus(message, type) {
+            const statusEl = document.getElementById('syncStatus');
+            statusEl.textContent = message;
+            statusEl.className = 'sync-status show ' + type;
+
+            setTimeout(() => {
+                statusEl.classList.remove('show');
+            }, 3000);
         }
 
         // 保存数据
@@ -1060,6 +1245,152 @@
                 renderNotes();
                 updateStats();
                 alert('数据已清除');
+            }
+        }
+
+        // ===== GitHub Gist 同步功能 =====
+
+        // 同步到 GitHub Gist
+        async function syncToGithub() {
+            if (!githubConfig.token) {
+                alert('请先配置 GitHub Token');
+                showGithubSettings();
+                return;
+            }
+
+            const data = {
+                tasks: tasks,
+                notes: notes,
+                studyHistory: studyHistory,
+                exportDate: new Date().toISOString()
+            };
+
+            showSyncStatus('正在同步...', 'success');
+
+            try {
+                let response;
+
+                if (githubConfig.gistId) {
+                    // 更新现有 Gist
+                    response = await updateGist(githubConfig.gistId, data);
+                } else {
+                    // 创建新 Gist
+                    response = await createGist(data);
+                    if (response && response.id) {
+                        githubConfig.gistId = response.id;
+                        localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+                        document.getElementById('gistId').value = response.id;
+                    }
+                }
+
+                showSyncStatus('✅ 同步成功！', 'success');
+            } catch (error) {
+                console.error('同步失败:', error);
+                showSyncStatus('❌ 同步失败: ' + error.message, 'error');
+            }
+        }
+
+        // 创建 Gist
+        async function createGist(data) {
+            const gistData = {
+                description: '每日学习计划数据备份 - ' + new Date().toLocaleDateString('zh-CN'),
+                public: false,
+                files: {
+                    'study-plan-data.json': {
+                        content: JSON.stringify(data, null, 2)
+                    }
+                }
+            };
+
+            const response = await fetch('https://api.github.com/gists', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'token ' + githubConfig.token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(gistData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || '创建 Gist 失败');
+            }
+
+            return await response.json();
+        }
+
+        // 更新 Gist
+        async function updateGist(gistId, data) {
+            const gistData = {
+                description: '每日学习计划数据备份 - ' + new Date().toLocaleDateString('zh-CN'),
+                files: {
+                    'study-plan-data.json': {
+                        content: JSON.stringify(data, null, 2)
+                    }
+                }
+            };
+
+            const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': 'token ' + githubConfig.token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(gistData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || '更新 Gist 失败');
+            }
+
+            return await response.json();
+        }
+
+        // 从 Gist 加载数据
+        async function loadFromGithub() {
+            if (!githubConfig.token || !githubConfig.gistId) {
+                alert('请先配置 GitHub Token 和 Gist ID');
+                showGithubSettings();
+                return;
+            }
+
+            showSyncStatus('正在加载数据...', 'success');
+
+            try {
+                const response = await fetch(`https://api.github.com/gists/${githubConfig.gistId}`, {
+                    headers: {
+                        'Authorization': 'token ' + githubConfig.token
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || '加载 Gist 失败');
+                }
+
+                const gist = await response.json();
+                const fileContent = gist.files['study-plan-data.json'];
+
+                if (fileContent) {
+                    const data = JSON.parse(fileContent.content);
+
+                    if (confirm('将从 Gist 加载数据，这将覆盖当前数据，确定继续吗？')) {
+                        tasks = data.tasks || [];
+                        notes = data.notes || [];
+                        studyHistory = data.studyHistory || {};
+
+                        saveData();
+                        renderTasks();
+                        renderNotes();
+                        updateStats();
+
+                        showSyncStatus('✅ 数据加载成功！', 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('加载失败:', error);
+                showSyncStatus('❌ 加载失败: ' + error.message, 'error');
             }
         }
     </script>
