@@ -936,7 +936,10 @@
                 <div class="task-item ${task.completed ? 'completed' : ''} priority-${task.priority}">
                     <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${task.id})">
                     <div class="task-content">
-                        <div class="task-title">${task.important ? '⭐ ' : ''}${task.title}</div>
+                        <div class="task-title">
+                            <span style="color: #999; font-size: 12px; margin-right: 8px;">[${formatTaskDate(task.createdAt)}]</span>
+                            ${task.important ? '⭐ ' : ''}${task.title}
+                        </div>
                         <div class="task-tags">
                             <span class="task-tag tag-${task.category}">${getCategoryLabel(task.category)}</span>
                             <span class="task-tag" style="background: #e0e0e0;">${getPriorityLabel(task.priority)}</span>
@@ -951,6 +954,14 @@
             `).join('');
 
             updateProgress();
+        }
+
+        // 格式化任务日期
+        function formatTaskDate(dateString) {
+            const date = new Date(dateString);
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${month}-${day}`;
         }
 
         // 获取分类标签
