@@ -835,12 +835,28 @@
         // 显示同步状态
         function showSyncStatus(message, type) {
             const statusEl = document.getElementById('syncStatus');
-            statusEl.textContent = message;
-            statusEl.className = 'sync-status show ' + type;
+            if (!statusEl) {
+                // 如果元素不存在，创建一个
+                const newStatusEl = document.createElement('div');
+                newStatusEl.id = 'syncStatus';
+                newStatusEl.className = 'sync-status show ' + type;
+                newStatusEl.textContent = message;
+                document.body.appendChild(newStatusEl);
 
-            setTimeout(() => {
-                statusEl.classList.remove('show');
-            }, 3000);
+                setTimeout(() => {
+                    newStatusEl.classList.remove('show');
+                    setTimeout(() => {
+                        newStatusEl.remove();
+                    }, 300);
+                }, 3000);
+            } else {
+                statusEl.textContent = message;
+                statusEl.className = 'sync-status show ' + type;
+
+                setTimeout(() => {
+                    statusEl.classList.remove('show');
+                }, 3000);
+            }
         }
 
         // 保存数据
