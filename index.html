@@ -566,10 +566,26 @@
 
         .sync-status {
             display: none;
-            padding: 10px 15px;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
             border-radius: 8px;
-            margin-top: 10px;
             font-size: 14px;
+            z-index: 2000;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         .sync-status.show {
@@ -579,11 +595,13 @@
         .sync-status.success {
             background: #d4edda;
             color: #155724;
+            border-left: 4px solid #28a745;
         }
 
         .sync-status.error {
             background: #f8d7da;
             color: #721c24;
+            border-left: 4px solid #dc3545;
         }
 
         ::-webkit-scrollbar {
@@ -737,8 +755,7 @@
         </div>
     </div>
 
-    <!-- 同步状态提示 -->
-    <div class="sync-status" id="syncStatus"></div>
+    <!-- 同步状态提示 - 固定在右上角 -->
 
     <script>
         // 数据存储
@@ -1252,6 +1269,8 @@
 
         // 同步到 GitHub Gist
         async function syncToGithub() {
+            console.log('开始同步到 GitHub');
+
             if (!githubConfig.token) {
                 alert('请先配置 GitHub Token');
                 showGithubSettings();
@@ -1272,18 +1291,21 @@
 
                 if (githubConfig.gistId) {
                     // 更新现有 Gist
+                    console.log('更新现有 Gist:', githubConfig.gistId);
                     response = await updateGist(githubConfig.gistId, data);
                 } else {
                     // 创建新 Gist
+                    console.log('创建新 Gist');
                     response = await createGist(data);
                     if (response && response.id) {
                         githubConfig.gistId = response.id;
                         localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
                         document.getElementById('gistId').value = response.id;
+                        console.log('Gist 创建成功，ID:', response.id);
                     }
                 }
 
-                showSyncStatus('✅ 同步成功！', 'success');
+                showSyncStatus('✅ 同步成功！Gist ID: ' + (response.id || githubConfig.gistId), 'success');
             } catch (error) {
                 console.error('同步失败:', error);
                 showSyncStatus('❌ 同步失败: ' + error.message, 'error');
@@ -1349,8 +1371,16 @@
 
         // 从 Gist 加载数据
         async function loadFromGithub() {
-            if (!githubConfig.token || !githubConfig.gistId) {
-                alert('请先配置 GitHub Token 和 Gist ID');
+            console.log('开始从 GitHub 加载数据');
+
+            if (!githubConfig.token) {
+                alert('请先配置 GitHub Token');
+                showGithubSettings();
+                return;
+            }
+
+            if (!githubConfig.gistId) {
+                alert('请先配置 Gist ID，或者先进行一次同步来创建 Gist');
                 showGithubSettings();
                 return;
             }
@@ -1370,10 +1400,13 @@
                 }
 
                 const gist = await response.json();
+                console.log('Gist 数据:', gist);
+
                 const fileContent = gist.files['study-plan-data.json'];
 
                 if (fileContent) {
                     const data = JSON.parse(fileContent.content);
+                    console.log('解析的数据:', data);
 
                     if (confirm('将从 Gist 加载数据，这将覆盖当前数据，确定继续吗？')) {
                         tasks = data.tasks || [];
@@ -1387,6 +1420,8 @@
 
                         showSyncStatus('✅ 数据加载成功！', 'success');
                     }
+                } else {
+                    throw new Error('Gist 中未找到数据文件');
                 }
             } catch (error) {
                 console.error('加载失败:', error);
