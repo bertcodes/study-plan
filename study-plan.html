@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日学习计划</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1::before {
+            content: "🎯";
+        }
+
+        .current-date {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .stats-bar {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 10px;
+        }
+
+        .stat-item .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-item .label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 25px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+
+        .section h2 {
+            font-size: 20px;
+            color: #667eea;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .task-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .task-input input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .task-input input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .task-input select {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .add-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .filter-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .filter-tab:hover:not(.active) {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .task-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+            border-left: 4px solid #667eea;
+        }
+
+        .task-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .task-item.completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+            border-left-color: #27ae60;
+        }
+
+        .task-item.priority-high {
+            border-left-color: #e74c3c;
+        }
+
+        .task-item.priority-medium {
+            border-left-color: #f39c12;
+        }
+
+        .task-item.priority-low {
+            border-left-color: #3498db;
+        }
+
+        .task-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-title {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .task-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .task-tag {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        .tag-algorithm { background: #ffeaa7; color: #d35400; }
+        .tag-project { background: #74b9ff; color: #0984e3; }
+        .tag-basic { background: #55efc4; color: #00b894; }
+        .tag-framework { background: #fd79a8; color: #e84393; }
+        .tag-database { background: #a29bfe; color: #6c5ce7; }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .task-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .edit-btn {
+            background: #3498db;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .important-btn {
+            background: #f39c12;
+            color: white;
+        }
+
+        .timer-section {
+            text-align: center;
+        }
+
+        .timer-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .timer-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+        }
+
+        .pause-btn {
+            background: linear-gradient(135deg, #f39c12 0%, #f1c40f 100%);
+            color: white;
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .timer-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .note-area {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .note-area:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .save-note-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .save-note-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .saved-notes {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .note-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+
+        .note-item .note-date {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .note-item .note-content {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .progress-section {
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .review-section {
+            margin-top: 20px;
+        }
+
+        .review-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .review-item {
+            background: #fff3cd;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid #ffc107;
+        }
+
+        .review-item .review-topic {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .review-item .review-time {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state::before {
+            content: "📝";
+            font-size: 48px;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .export-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+
+        .export-btn:hover {
+            background: #219a52;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .emoji-icon {
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <div>
+                <h1>每日学习计划</h1>
+                <p class="current-date" id="currentDate"></p>
+            </div>
+            <div>
+                <button class="export-btn" onclick="exportData()">📤 导出数据</button>
+                <button class="export-btn" onclick="clearData()" style="background: #e74c3c; margin-left: 10px;">🗑️ 清除数据</button>
+            </div>
+        </div>
+
+        <!-- 统计栏 -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="value" id="totalTasks">0</div>
+                <div class="label">总任务数</div>
+            </div>
+            <div class="stat-item">
+                <div class="value" id="completedTasks">0</div>
+                <div class="label">已完成</div>
+            </div>
+            <div class="stat-item">
+                <div class="value" id="studyTime">0h</div>
+                <div class="label">今日学习</div>
+            </div>
+            <div class="stat-item">
+                <div class="value" id="streak">0天</div>
+                <div class="label">连续学习</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 左侧：任务管理 -->
+            <div class="left-panel">
+                <div class="section">
+                    <h2><span class="emoji-icon">📋</span>今日学习任务</h2>
+                    
+                    <div class="task-input">
+                        <input type="text" id="taskInput" placeholder="输入学习任务..." onkeypress="if(event.key==='Enter') addTask()">
+                        <select id="taskCategory">
+                            <option value="algorithm">🔢 算法</option>
+                            <option value="project">💼 项目</option>
+                            <option value="basic">📚 基础</option>
+                            <option value="framework">⚙️ 框架</option>
+                            <option value="database">💾 数据库</option>
+                        </select>
+                        <select id="taskPriority">
+                            <option value="high">🔴 高优先级</option>
+                            <option value="medium">🟡 中优先级</option>
+                            <option value="low">🔵 低优先级</option>
+                        </select>
+                        <button class="add-btn" onclick="addTask()">➕ 添加任务</button>
+                    </div>
+
+                    <div class="filter-tabs">
+                        <div class="filter-tab active" onclick="filterTasks('all')">全部</div>
+                        <div class="filter-tab" onclick="filterTasks('pending')">待完成</div>
+                        <div class="filter-tab" onclick="filterTasks('completed')">已完成</div>
+                        <div class="filter-tab" onclick="filterTasks('important')">⭐ 重要</div>
+                    </div>
+
+                    <div class="task-list" id="taskList">
+                        <div class="empty-state">暂无任务，开始添加你的第一个学习任务吧！</div>
+                    </div>
+
+                    <div class="progress-section">
+                        <h3>今日完成进度</h3>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-text" id="progressText">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：计时器和笔记 -->
+            <div class="right-panel">
+                <!-- 学习计时器 -->
+                <div class="section timer-section">
+                    <h2><span class="emoji-icon">⏰</span>学习计时器</h2>
+                    <div class="timer-display" id="timerDisplay">00:00:00</div>
+                    <div class="timer-controls">
+                        <button class="timer-btn start-btn" onclick="startTimer()">▶️ 开始</button>
+                        <button class="timer-btn pause-btn" onclick="pauseTimer()">⏸️ 暂停</button>
+                        <button class="timer-btn reset-btn" onclick="resetTimer()">🔄 重置</button>
+                    </div>
+                </div>
+
+                <!-- 学习笔记 -->
+                <div class="section">
+                    <h2><span class="emoji-icon">📝</span>学习笔记</h2>
+                    <textarea class="note-area" id="noteArea" placeholder="记录重点知识点、面试题解析等..."></textarea>
+                    <button class="save-note-btn" onclick="saveNote()">💾 保存笔记</button>
+                    <div class="saved-notes" id="savedNotes">
+                        <div class="empty-state">暂无笔记</div>
+                    </div>
+                </div>
+
+                <!-- 复习提醒 -->
+                <div class="section">
+                    <h2><span class="emoji-icon">🔔</span>复习提醒</h2>
+                    <div class="review-list" id="reviewList">
+                        <div class="empty-state">暂无复习提醒</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 数据存储
+        let tasks = [];
+        let notes = [];
+        let studyHistory = {};
+        let timerInterval = null;
+        let timerSeconds = 0;
+        let isTimerRunning = false;
+        let currentFilter = 'all';
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            updateCurrentDate();
+            updateStats();
+            renderTasks();
+            renderNotes();
+            renderReviewList();
+            checkStreak();
+        });
+
+        // 加载数据
+        function loadData() {
+            const savedTasks = localStorage.getItem('studyTasks');
+            const savedNotes = localStorage.getItem('studyNotes');
+            const savedHistory = localStorage.getItem('studyHistory');
+
+            if (savedTasks) tasks = JSON.parse(savedTasks);
+            if (savedNotes) notes = JSON.parse(savedNotes);
+            if (savedHistory) studyHistory = JSON.parse(savedHistory);
+        }
+
+        // 保存数据
+        function saveData() {
+            localStorage.setItem('studyTasks', JSON.stringify(tasks));
+            localStorage.setItem('studyNotes', JSON.stringify(notes));
+            localStorage.setItem('studyHistory', JSON.stringify(studyHistory));
+        }
+
+        // 更新当前日期
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('zh-CN', options);
+        }
+
+        // 添加任务
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            const category = document.getElementById('taskCategory').value;
+            const priority = document.getElementById('taskPriority').value;
+            const title = input.value.trim();
+
+            if (!title) {
+                alert('请输入任务内容');
+                return;
+            }
+
+            const task = {
+                id: Date.now(),
+                title: title,
+                category: category,
+                priority: priority,
+                completed: false,
+                important: false,
+                createdAt: new Date().toISOString(),
+                completedAt: null
+            };
+
+            tasks.push(task);
+            input.value = '';
+            saveData();
+            renderTasks();
+            updateStats();
+
+            // 添加到复习提醒
+            addReviewReminder(task);
+        }
+
+        // 渲染任务列表
+        function renderTasks() {
+            const taskList = document.getElementById('taskList');
+            let filteredTasks = [...tasks];
+
+            // 过滤任务
+            if (currentFilter === 'pending') {
+                filteredTasks = tasks.filter(t => !t.completed);
+            } else if (currentFilter === 'completed') {
+                filteredTasks = tasks.filter(t => t.completed);
+            } else if (currentFilter === 'important') {
+                filteredTasks = tasks.filter(t => t.important);
+            }
+
+            // 排序：未完成在前，高优先级在前
+            filteredTasks.sort((a, b) => {
+                if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                const priorityOrder = { high: 0, medium: 1, low: 2 };
+                return priorityOrder[a.priority] - priorityOrder[b.priority];
+            });
+
+            if (filteredTasks.length === 0) {
+                taskList.innerHTML = '<div class="empty-state">暂无任务</div>';
+                return;
+            }
+
+            taskList.innerHTML = filteredTasks.map(task => `
+                <div class="task-item ${task.completed ? 'completed' : ''} priority-${task.priority}">
+                    <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${task.id})">
+                    <div class="task-content">
+                        <div class="task-title">${task.important ? '⭐ ' : ''}${task.title}</div>
+                        <div class="task-tags">
+                            <span class="task-tag tag-${task.category}">${getCategoryLabel(task.category)}</span>
+                            <span class="task-tag" style="background: #e0e0e0;">${getPriorityLabel(task.priority)}</span>
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        <button class="task-btn important-btn" onclick="toggleImportant(${task.id})" title="标记为重要">⭐</button>
+                        <button class="task-btn edit-btn" onclick="editTask(${task.id})" title="编辑">✏️</button>
+                        <button class="task-btn delete-btn" onclick="deleteTask(${task.id})" title="删除">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+
+            updateProgress();
+        }
+
+        // 获取分类标签
+        function getCategoryLabel(category) {
+            const labels = {
+                algorithm: '🔢 算法',
+                project: '💼 项目',
+                basic: '📚 基础',
+                framework: '⚙️ 框架',
+                database: '💾 数据库'
+            };
+            return labels[category] || category;
+        }
+
+        // 获取优先级标签
+        function getPriorityLabel(priority) {
+            const labels = {
+                high: '🔴 高',
+                medium: '🟡 中',
+                low: '🔵 低'
+            };
+            return labels[priority] || priority;
+        }
+
+        // 切换任务完成状态
+        function toggleTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                task.completedAt = task.completed ? new Date().toISOString() : null;
+                saveData();
+                renderTasks();
+                updateStats();
+            }
+        }
+
+        // 标记重要
+        function toggleImportant(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.important = !task.important;
+                saveData();
+                renderTasks();
+            }
+        }
+
+        // 编辑任务
+        function editTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                const newTitle = prompt('编辑任务：', task.title);
+                if (newTitle && newTitle.trim()) {
+                    task.title = newTitle.trim();
+                    saveData();
+                    renderTasks();
+                }
+            }
+        }
+
+        // 删除任务
+        function deleteTask(id) {
+            if (confirm('确定要删除这个任务吗？')) {
+                tasks = tasks.filter(t => t.id !== id);
+                saveData();
+                renderTasks();
+                updateStats();
+            }
+        }
+
+        // 过滤任务
+        function filterTasks(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            renderTasks();
+        }
+
+        // 更新进度
+        function updateProgress() {
+            const todayTasks = tasks.filter(t => {
+                const taskDate = new Date(t.createdAt).toDateString();
+                const today = new Date().toDateString();
+                return taskDate === today;
+            });
+
+            if (todayTasks.length === 0) {
+                document.getElementById('progressFill').style.width = '0%';
+                document.getElementById('progressText').textContent = '0%';
+                return;
+            }
+
+            const completed = todayTasks.filter(t => t.completed).length;
+            const progress = Math.round((completed / todayTasks.length) * 100);
+
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = progress + '%';
+        }
+
+        // 更新统计
+        function updateStats() {
+            const today = new Date().toDateString();
+            const todayTasks = tasks.filter(t => new Date(t.createdAt).toDateString() === today);
+            const completedToday = todayTasks.filter(t => t.completed).length;
+            const todayStudyTime = studyHistory[today] || 0;
+
+            document.getElementById('totalTasks').textContent = tasks.length;
+            document.getElementById('completedTasks').textContent = tasks.filter(t => t.completed).length;
+            document.getElementById('studyTime').textContent = formatTime(todayStudyTime);
+        }
+
+        // 格式化时间
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            if (hours > 0) {
+                return hours + 'h ' + minutes + 'm';
+            }
+            return minutes + 'm';
+        }
+
+        // 计时器功能
+        function startTimer() {
+            if (!isTimerRunning) {
+                isTimerRunning = true;
+                timerInterval = setInterval(() => {
+                    timerSeconds++;
+                    updateTimerDisplay();
+                }, 1000);
+            }
+        }
+
+        function pauseTimer() {
+            if (isTimerRunning) {
+                isTimerRunning = false;
+                clearInterval(timerInterval);
+                saveStudyTime();
+            }
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timerSeconds = 0;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const hours = Math.floor(timerSeconds / 3600);
+            const minutes = Math.floor((timerSeconds % 3600) / 60);
+            const seconds = timerSeconds % 60;
+
+            document.getElementById('timerDisplay').textContent = 
+                String(hours).padStart(2, '0') + ':' +
+                String(minutes).padStart(2, '0') + ':' +
+                String(seconds).padStart(2, '0');
+        }
+
+        function saveStudyTime() {
+            const today = new Date().toDateString();
+            if (!studyHistory[today]) {
+                studyHistory[today] = 0;
+            }
+            studyHistory[today] += timerSeconds;
+            saveData();
+            updateStats();
+        }
+
+        // 笔记功能
+        function saveNote() {
+            const noteArea = document.getElementById('noteArea');
+            const content = noteArea.value.trim();
+
+            if (!content) {
+                alert('请输入笔记内容');
+                return;
+            }
+
+            const note = {
+                id: Date.now(),
+                content: content,
+                createdAt: new Date().toISOString()
+            };
+
+            notes.unshift(note);
+            noteArea.value = '';
+            saveData();
+            renderNotes();
+        }
+
+        function renderNotes() {
+            const notesContainer = document.getElementById('savedNotes');
+
+            if (notes.length === 0) {
+                notesContainer.innerHTML = '<div class="empty-state">暂无笔记</div>';
+                return;
+            }
+
+            notesContainer.innerHTML = notes.map(note => `
+                <div class="note-item">
+                    <div class="note-date">${new Date(note.createdAt).toLocaleString('zh-CN')}</div>
+                    <div class="note-content">${note.content}</div>
+                    <button class="task-btn delete-btn" style="margin-top: 10px;" onclick="deleteNote(${note.id})">删除</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteNote(id) {
+            if (confirm('确定要删除这条笔记吗？')) {
+                notes = notes.filter(n => n.id !== id);
+                saveData();
+                renderNotes();
+            }
+        }
+
+        // 复习提醒
+        function addReviewReminder(task) {
+            // 根据艾宾浩斯遗忘曲线设置复习时间
+            const reviewTimes = [
+                { days: 1, label: '1天后复习' },
+                { days: 3, label: '3天后复习' },
+                { days: 7, label: '1周后复习' },
+                { days: 14, label: '2周后复习' },
+                { days: 30, label: '1月后复习' }
+            ];
+
+            const reviews = JSON.parse(localStorage.getItem('reviewReminders') || '[]');
+
+            reviewTimes.forEach(review => {
+                reviews.push({
+                    id: Date.now() + Math.random(),
+                    taskTitle: task.title,
+                    reviewDate: new Date(Date.now() + review.days * 24 * 60 * 60 * 1000).toISOString(),
+                    label: review.label,
+                    completed: false
+                });
+            });
+
+            localStorage.setItem('reviewReminders', JSON.stringify(reviews));
+            renderReviewList();
+        }
+
+        function renderReviewList() {
+            const reviewList = document.getElementById('reviewList');
+            const reviews = JSON.parse(localStorage.getItem('reviewReminders') || '[]');
+            const now = new Date();
+
+            // 过滤出今天需要复习的
+            const todayReviews = reviews.filter(r => {
+                const reviewDate = new Date(r.reviewDate);
+                const diffDays = Math.floor((reviewDate - now) / (1000 * 60 * 60 * 24));
+                return diffDays <= 0 && !r.completed;
+            });
+
+            if (todayReviews.length === 0) {
+                reviewList.innerHTML = '<div class="empty-state">今天暂无复习任务</div>';
+                return;
+            }
+
+            reviewList.innerHTML = todayReviews.slice(0, 5).map(review => `
+                <div class="review-item">
+                    <div class="review-topic">${review.taskTitle}</div>
+                    <div class="review-time">${review.label}</div>
+                    <button class="task-btn edit-btn" style="margin-top: 8px;" onclick="completeReview(${review.id})">✅ 已复习</button>
+                </div>
+            `).join('');
+        }
+
+        function completeReview(id) {
+            const reviews = JSON.parse(localStorage.getItem('reviewReminders') || '[]');
+            const review = reviews.find(r => r.id === id);
+            if (review) {
+                review.completed = true;
+                localStorage.setItem('reviewReminders', JSON.stringify(reviews));
+                renderReviewList();
+            }
+        }
+
+        // 检查连续学习天数
+        function checkStreak() {
+            const dates = Object.keys(studyHistory).sort().reverse();
+            let streak = 0;
+            const today = new Date();
+
+            for (let i = 0; i < dates.length; i++) {
+                const date = new Date(dates[i]);
+                const diffDays = Math.floor((today - date) / (1000 * 60 * 60 * 24));
+
+                if (diffDays === i && studyHistory[dates[i]] > 0) {
+                    streak++;
+                } else {
+                    break;
+                }
+            }
+
+            document.getElementById('streak').textContent = streak + '天';
+        }
+
+        // 导出数据
+        function exportData() {
+            const data = {
+                tasks: tasks,
+                notes: notes,
+                studyHistory: studyHistory,
+                exportDate: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'study-plan-export-' + new Date().toISOString().split('T')[0] + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 清除数据
+        function clearData() {
+            if (confirm('确定要清除所有数据吗？此操作不可恢复！')) {
+                localStorage.clear();
+                tasks = [];
+                notes = [];
+                studyHistory = {};
+                timerSeconds = 0;
+                saveData();
+                renderTasks();
+                renderNotes();
+                updateStats();
+                alert('数据已清除');
+            }
+        }
+    </script>
+</body>
+</html>
