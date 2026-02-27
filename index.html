@@ -260,6 +260,7 @@
         .tag-basic { background: #55efc4; color: #00b894; }
         .tag-framework { background: #fd79a8; color: #e84393; }
         .tag-database { background: #a29bfe; color: #6c5ce7; }
+        .tag-custom { background: #95a5a6; color: #7f8c8d; }
 
         .task-actions {
             display: flex;
@@ -669,12 +670,8 @@
                     <div class="task-input">
                         <input type="text" id="taskInput" placeholder="输入学习任务..." onkeypress="if(event.key==='Enter') addTask()">
                         <select id="taskCategory">
-                            <option value="algorithm">🔢 算法</option>
-                            <option value="project">💼 项目</option>
-                            <option value="basic">📚 基础</option>
-                            <option value="framework">⚙️ 框架</option>
-                            <option value="database">💾 数据库</option>
                         </select>
+                        <button class="add-btn" onclick="showCategoryManager()">🏷️ 分类管理</button>
                         <select id="taskPriority">
                             <option value="high">🔴 高优先级</option>
                             <option value="medium">🟡 中优先级</option>
@@ -755,6 +752,37 @@
         </div>
     </div>
 
+    <!-- 分类管理弹窗 -->
+    <div class="modal" id="categoryModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h3>🏷️ 分类管理</h3>
+            <div style="margin-bottom: 15px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="newCategoryName" placeholder="分类名称（如：Python）" style="flex: 1;" />
+                    <input type="text" id="newCategoryEmoji" placeholder="点击选择或输入" style="width: 120px;" readonly onclick="toggleEmojiPicker()" />
+                    <button class="confirm-btn" onclick="addCategory()">➕ 添加</button>
+                </div>
+
+                <!-- 图标选择器 -->
+                <div id="emojiPicker" style="display: none; border: 2px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #f8f9fa;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 10px;">点击选择图标：</div>
+                    <div id="emojiGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto;">
+                    </div>
+                </div>
+
+                <p style="font-size: 12px; color: #666;">
+                    💡 提示：点击图标框选择 emoji，或手动输入。每个任务类型会自动生成一个随机颜色
+                </p>
+            </div>
+            <div id="categoryList" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+                <div class="empty-state">暂无分类</div>
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeCategoryModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 同步状态提示 - 固定在右上角 -->
 
     <script>
@@ -767,6 +795,15 @@
         let isTimerRunning = false;
         let currentFilter = 'all';
 
+        // 任务分类（可自定义）
+        let categories = [
+            { id: 'algorithm', name: '算法', emoji: '🔢', color: '#ffeaa7' },
+            { id: 'project', name: '项目', emoji: '💼', color: '#74b9ff' },
+            { id: 'basic', name: '基础', emoji: '📚', color: '#55efc4' },
+            { id: 'framework', name: '框架', emoji: '⚙️', color: '#fd79a8' },
+            { id: 'database', name: '数据库', emoji: '💾', color: '#a29bfe' }
+        ];
+
         // GitHub Gist 配置
         let githubConfig = {
             token: '',
@@ -777,6 +814,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
             loadGithubConfig();
+            loadCategories();
             updateCurrentDate();
             updateStats();
             renderTasks();
@@ -794,6 +832,191 @@
             if (savedTasks) tasks = JSON.parse(savedTasks);
             if (savedNotes) notes = JSON.parse(savedNotes);
             if (savedHistory) studyHistory = JSON.parse(savedHistory);
+        }
+
+        // 加载分类
+        function loadCategories() {
+            const savedCategories = localStorage.getItem('taskCategories');
+            if (savedCategories) {
+                categories = JSON.parse(savedCategories);
+            }
+            renderCategorySelect();
+        }
+
+        // 保存分类
+        function saveCategories() {
+            localStorage.setItem('taskCategories', JSON.stringify(categories));
+            renderCategorySelect();
+        }
+
+        // 渲染分类下拉框
+        function renderCategorySelect() {
+            const select = document.getElementById('taskCategory');
+            if (!select) return;
+
+            const currentValue = select.value;
+            select.innerHTML = categories.map(cat =>
+                `<option value="${cat.id}">${cat.emoji} ${cat.name}</option>`
+            ).join('');
+
+            if (currentValue && categories.find(c => c.id === currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        // 获取分类标签
+        function getCategoryLabel(category) {
+            const cat = categories.find(c => c.id === category);
+            if (cat) {
+                return `${cat.emoji} ${cat.name}`;
+            }
+            return category;
+        }
+
+        // 获取分类颜色
+        function getCategoryColor(category) {
+            const cat = categories.find(c => c.id === category);
+            return cat ? cat.color : '#95a5a6';
+        }
+
+        // 显示分类管理弹窗
+        function showCategoryManager() {
+            document.getElementById('categoryModal').classList.add('show');
+            renderCategoryList();
+        }
+
+        // 关闭分类管理弹窗
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.remove('show');
+        }
+
+        // 渲染分类列表
+        function renderCategoryList() {
+            const container = document.getElementById('categoryList');
+
+            if (categories.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无分类</div>';
+                return;
+            }
+
+            container.innerHTML = categories.map(cat => `
+                <div class="task-item" style="border-left-color: ${cat.color}; padding: 10px; margin-bottom: 8px;">
+                    <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 18px;">${cat.emoji}</span>
+                        <strong>${cat.name}</strong>
+                    </div>
+                    <div class="task-actions">
+                        <button class="task-btn edit-btn" onclick="editCategory('${cat.id}')" title="编辑">✏️</button>
+                        <button class="task-btn delete-btn" onclick="deleteCategory('${cat.id}')" title="删除">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 添加分类
+        function addCategory() {
+            const nameInput = document.getElementById('newCategoryName');
+            const emojiInput = document.getElementById('newCategoryEmoji');
+            const name = nameInput.value.trim();
+            const emoji = emojiInput.value.trim() || '📌';
+
+            if (!name) {
+                alert('请输入分类名称');
+                return;
+            }
+
+            const id = 'custom_' + Date.now();
+            const colors = ['#ffeaa7', '#74b9ff', '#55efc4', '#fd79a8', '#a29bfe', '#ff7675', '#fab1a0', '#00b894', '#0984e3', '#6c5ce7'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+
+            categories.push({ id, name, emoji, color });
+            saveCategories();
+            renderCategoryList();
+
+            nameInput.value = '';
+            emojiInput.value = '';
+
+            showSyncStatus(`分类 "${name}" 已添加`, 'success');
+        }
+
+        // 编辑分类
+        function editCategory(id) {
+            const cat = categories.find(c => c.id === id);
+            if (!cat) return;
+
+            const newName = prompt('编辑分类名称：', cat.name);
+            if (newName && newName.trim()) {
+                cat.name = newName.trim();
+                const newEmoji = prompt('编辑图标：', cat.emoji);
+                if (newEmoji && newEmoji.trim()) {
+                    cat.emoji = newEmoji.trim();
+                }
+                saveCategories();
+                renderCategoryList();
+                renderCategorySelect();
+                renderTasks();
+                showSyncStatus('分类已更新', 'success');
+            }
+        }
+
+        // 删除分类
+        function deleteCategory(id) {
+            const cat = categories.find(c => c.id === id);
+            if (!cat) return;
+
+            const hasTasks = tasks.some(t => t.category === id);
+            if (hasTasks) {
+                alert('该分类下还有任务，请先删除或移动任务');
+                return;
+            }
+
+            if (confirm(`确定要删除分类 "${cat.name}" 吗？`)) {
+                categories = categories.filter(c => c.id !== id);
+                saveCategories();
+                renderCategoryList();
+                showSyncStatus(`分类 "${cat.name}" 已删除`, 'success');
+            }
+        }
+
+        // 可选图标列表
+        const emojiOptions = [
+            '📚', '📖', '📝', '🎯', '🚀', '⚡', '💡', '🔥',
+            '🌟', '⭐', '🎨', '🎭', '🎪', '🎢', '🎡', '🎯',
+            '🔧', '⚙️', '🛠️', '🔨', '🪛', '📐', '📏', '📎',
+            '💻', '🖥️', '💾', '📀', '📱', '🎮', '🎬', '📸',
+            '🌐', '☁️', '🔒', '🔓', '🔐', '🗝️', '🔑', '💎',
+            '🐍', '🐹', '🐼', '🦊', '🐯', '🦁', '🐬', '🦋',
+            '🌍', '🌎', '🌏', '🏔️', '🌋', '🏝️', '🏜️', '🏙️',
+            '🚗', '✈️', '🚂', '🚁', '🚀', '🛸', '⛵', '🚢',
+            '🏃', '⚽', '🏀', '🎾', '🏊', '🚴', '🎸', '🎹',
+            '🍕', '🍔', '🍜', '☕', '🍎', '🥑', '🍓', '🍿',
+            '❤️', '💜', '💙', '💚', '💛', '🧡', '🖤', '🤍',
+            '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫'
+        ];
+
+        // 切换图标选择器
+        function toggleEmojiPicker() {
+            const picker = document.getElementById('emojiPicker');
+            if (picker.style.display === 'none') {
+                picker.style.display = 'block';
+                renderEmojiGrid();
+            } else {
+                picker.style.display = 'none';
+            }
+        }
+
+        // 渲染图标网格
+        function renderEmojiGrid() {
+            const grid = document.getElementById('emojiGrid');
+            grid.innerHTML = emojiOptions.map(emoji =>
+                `<button type="button" class="emoji-btn" style="font-size: 24px; padding: 8px; border: none; background: white; border-radius: 5px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#667eea';" onmouseout="this.style.background='white';" onclick="selectEmoji('${emoji}')">${emoji}</button>`
+            ).join('');
+        }
+
+        // 选择图标
+        function selectEmoji(emoji) {
+            document.getElementById('newCategoryEmoji').value = emoji;
+            document.getElementById('emojiPicker').style.display = 'none';
         }
 
         // 加载GitHub配置
@@ -940,10 +1163,10 @@
                             <span style="color: #999; font-size: 12px; margin-right: 8px;">[${formatTaskDate(task.createdAt)}]</span>
                             ${task.important ? '⭐ ' : ''}${task.title}
                         </div>
-                        <div class="task-tags">
-                            <span class="task-tag tag-${task.category}">${getCategoryLabel(task.category)}</span>
-                            <span class="task-tag" style="background: #e0e0e0;">${getPriorityLabel(task.priority)}</span>
-                        </div>
+                    <div class="task-tags">
+                        <span class="task-tag" style="background: ${getCategoryColor(task.category)}; color: #333;">${getCategoryLabel(task.category)}</span>
+                        <span class="task-tag" style="background: #e0e0e0;">${getPriorityLabel(task.priority)}</span>
+                    </div>
                     </div>
                     <div class="task-actions">
                         <button class="task-btn important-btn" onclick="toggleImportant(${task.id})" title="标记为重要">⭐</button>
@@ -964,16 +1187,14 @@
             return `${month}-${day}`;
         }
 
-        // 获取分类标签
+        // 旧版本兼容函数（已替换为 loadCategories 中的版本）
+        // 保留此函数以避免冲突
         function getCategoryLabel(category) {
-            const labels = {
-                algorithm: '🔢 算法',
-                project: '💼 项目',
-                basic: '📚 基础',
-                framework: '⚙️ 框架',
-                database: '💾 数据库'
-            };
-            return labels[category] || category;
+            const cat = categories.find(c => c.id === category);
+            if (cat) {
+                return `${cat.emoji} ${cat.name}`;
+            }
+            return category;
         }
 
         // 获取优先级标签
@@ -1308,6 +1529,7 @@
                 tasks: tasks,
                 notes: notes,
                 studyHistory: studyHistory,
+                categories: categories,
                 exportDate: new Date().toISOString()
             };
 
@@ -1462,6 +1684,10 @@
                         tasks = data.tasks || [];
                         notes = data.notes || [];
                         studyHistory = data.studyHistory || {};
+                        if (data.categories) {
+                            categories = data.categories;
+                            saveCategories();
+                        }
 
                         saveData();
                         renderTasks();
